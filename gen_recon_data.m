@@ -33,17 +33,7 @@ idft2 = conj(dftmtx(dim))/dim;
 vec_dft2 = kron(dft2, dft2);
 vec_idft2 = kron(idft2, idft2);
 
-% Add some paths
-addpath('Read_data');
-addpath('Reconstruction');
-addpath('Simulation');
-addpath('DCE');
-addpath('DCE\AUC');
-addpath('DCE\extractAIF');
-addpath('DCE\Patlak');
-addpath('DCE\Tofts');
-addpath('qT1');
-addpath('qT1\analysis');
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ACQUIRE TIME SERIES DATA %

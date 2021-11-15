@@ -1,23 +1,11 @@
 function [SI, pre, kt, ve, vp, t1, dim] = sim_si_images(num_AIF_pts);
 
 % Add some paths
-addpath('Read_data');
-addpath('Reconstruction');
-addpath('Simulation');
 addpath('DCE');
 addpath('DCE\AUC');
 addpath('DCE\extractAIF');
 addpath('DCE\Patlak');
 addpath('DCE\Tofts');
-addpath('qT1');
-addpath('qT1\analysis');
-
-T1_pre_full = load('DCE_test_mat_T1_pre_contrast\T1_pre.mat').t1_map;
-T1_post_full = load('DCE_test_mat_T1_post_contrast\T1_post.mat').t1_map;
-DCE_pre_full = load('DCE_test_mat_pre_contrast\DCE_pre.mat').dicom_imgs;
-DCE_settled_full = load('DCE_test_mat_settled_contrast\DCE_settled.mat').dicom_imgs;
-DCE_post_full = load('DCE_test_mat_post_contrast\DCE_post.mat').dicom_imgs;
-
 
 % Resize each image
 dim = 74;
