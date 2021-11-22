@@ -1,7 +1,7 @@
-function [truth, recon, obsv,mse,est_cov] = compressed_sensing_reconstruction(spokes);
+function [truth, recon, obsv,mse,Cu,A] = compressed_sensing_reconstruction(spokes);
 
 % Variables
-recon_pts = 20;
+recon_pts = 100;
 % dim = 74;
 
 
@@ -10,7 +10,11 @@ recon_pts = 20;
 
 % Get the data to reconstruct for hte Kalman filter
 [truth, pre, obsv, est_cov, shifted_usmat,dim] = gen_recon_data(spokes);
-truth = abs(ifft2(truth));
+% truth = abs(ifft2(truth));
+
+
+
+%Add a small delta for those things that dont chagne at all
 
 % Some useful matrices
 dft2 = dftmtx(dim);
@@ -19,6 +23,21 @@ vec_dft2 = kron(dft2, dft2);
 vec_idft2 = kron(idft2, idft2);
 
 
+% Get the state transition matrices
+A = get_state_transition(truth(:,:,1:recon_pts));
+A(find(isnan(A))) = 0;
+Cu = ones(72,72,recon_pts).*truth(:,:,1:recon_pts)./100;
+% Cu = Cu + ones(size(Cu));
+
+Cuinv = 1./Cu;
+Cuinv(isinf(Cuinv)) = 0;
+
+
+
+for n = 1:recon_pts
+truth(:,:,n) = truth(:,:,n) + wgn(72,72,0).*sqrt(truth(:,:,n)./100);
+
+end
 % Vectorize the images
 vec_ground_truth = reshape(truth(:,:,1:recon_pts), dim*dim, []);
 vec_observations = zeros(dim*dim, recon_pts);
@@ -30,9 +49,9 @@ vec_DCE_pre = reshape(truth(:,:,1), dim*dim, []);
 vec_init = rand(dim*dim, recon_pts);
 
 
-H = zeros(dim*dim, dim*dim, recon_pts+2);
-H(:,:,1) = eye(dim*dim)*vec_dft2;
-H(:,:,recon_pts + 2) = eye(dim*dim)*vec_dft2;
+% H = zeros(dim*dim, dim*dim, recon_pts+2);
+% H(:,:,1) = eye(dim*dim)*vec_dft2;
+% H(:,:,recon_pts + 2) = eye(dim*dim)*vec_dft2;
 % vec_init(:,1) = vec_ground_truth(:,1);
 % vec_init(:,recon_pts + 2) = vec_ground_truth(:,1);
 vec_init = reshape(abs(ifft2(obsv(:,:,1:recon_pts))),dim*dim,[]);
@@ -61,6 +80,10 @@ param.time_pts = recon_pts;
 param.dim = dim;
 param.H = H1;
 param.E = dft2;
+param.A = A;
+param.stateL2 = 0;
+param.mle = 1;
+param.C = Cuinv;
 
 W = zeros(recon_pts, recon_pts-1);
 for n = 1: recon_pts -1
@@ -72,7 +95,7 @@ vec_init = reshape(vec_init,dim,dim,[]);
 clear W H vec_observations vec_usmat dft2 idft2
 [reconstructed_data] = compressed_sensing(vec_init,  param);
 
-for n = 1:100
+for n = 1:2
     [reconstructed_data] = compressed_sensing(reconstructed_data,  param);
 end
 %smoothed = kalman_smoother(reconstructed_data, Ms, A, vec_ground_truth(:,recon_pts));

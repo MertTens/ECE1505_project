@@ -76,6 +76,30 @@ function res = objective(x,dx,t,param)
 w = param.H.*pagemtimes(pagemtimes(param.E,x + t*dx),param.E.') - param.y;
 L2Obj = w(:)' * w(:);
 
+wah = x + t*dx;
+
+% State model part
+if param.stateL2
+    stateL2Obj = 0;
+    for n = 2:param.time_pts
+        w = wah(:,:,n-1).*param.A(n-1) - wah(:,:,n);
+        stateL2Obj = w(:)'*w(:);
+    end
+else
+    stateL2Obj = 0;
+end
+
+% MLE part
+if param.mle
+    MLEObj = 0;
+    for n = 2:param.time_pts
+        w = (wah(:,:,n-1).*param.A(n-1) - wah(:,:,n)).*sqrt(param.C(:,:,n));
+        MLEObj = w(:)'*w(:);
+    end
+else
+    MLEObj = 0;
+end
+
 % L1 norm part
 if param.lambda
    w = reshape((x+t*dx),[],param.time_pts)*param.W; 
@@ -93,7 +117,7 @@ else
 end
 
 % Objective function
-res=L2Obj+param.lambda*L1Obj+param.nuclear*L1Nuc;
+res=L2Obj+param.lambda*L1Obj+param.nuclear*L1Nuc+param.stateL2*stateL2Obj+MLEObj*param.mle;
 
 function g = grad(x,param)
 
@@ -123,6 +147,38 @@ else
     L1grad = 0;
 end
 
+% State model part
+if param.stateL2
+    stateL2Grad = zeros(param.dim,param.dim,param.time_pts);
+    
+    % First, middle last
+    stateL2Grad(:,:,1) = (param.A(:,:,1).^2).*x(:,:,1)-param.A(:,:,1).*x(:,:,2);
+    
+    for n = 2:param.time_pts-1
+        stateL2Grad(:,:,n) = (param.A(:,:,n).^2).*x(:,:,n)-param.A(:,:,n).*x(:,:,n+1) - param.A(:,:,n-1).*x(:,:,n-1) + x(:,:,n);
+    end
+    stateL2Grad(:,:,param.time_pts) = x(:,:,param.time_pts)-param.A(:,:,param.time_pts-1).*x(:,:,param.time_pts-1);
+    stateL2Grad = stateL2Grad.*2;
+else
+    stateL2Grad = zeros(size(x));
+end
+
+% MLE part
+if param.mle
+    MLEGrad = zeros(param.dim,param.dim,param.time_pts);
+    
+    % First, middle last
+    MLEGrad(:,:,1) = param.C(:,:,2).*(param.A(:,:,1).^2).*x(:,:,1)-param.C(:,:,2).*param.A(:,:,1).*x(:,:,2);
+    
+    for n = 2:param.time_pts-1
+        MLEGrad(:,:,n) = param.C(:,:,n+1).*(param.A(:,:,n).^2).*x(:,:,n)-param.C(:,:,n+1).*param.A(:,:,n).*x(:,:,n+1) - param.C(:,:,n).*param.A(:,:,n-1).*x(:,:,n-1) + param.C(:,:,n).*x(:,:,n);
+    end
+    MLEGrad(:,:,param.time_pts) = param.C(:,:,param.time_pts).*(x(:,:,param.time_pts)-param.C(:,:,param.time_pts).*param.A(:,:,param.time_pts-1).*x(:,:,param.time_pts-1));
+    MLEGrad = MLEGrad.*2;
+else
+    MLEGrad = zeros(size(x));
+end
+
 % nuclear part
 if param.nuclear
     [U, S, V] = svd(reshape((x), [], param.time_pts));
@@ -132,4 +188,4 @@ else
     L1NucGrad = zeros(param.dim*param.dim,param.time_pts);
 end
 
-g = L2Grad + param.lambda*reshape(L1Grad,param.dim,param.dim,[]) + param.nuclear*reshape(L1NucGrad,param.dim,param.dim,[]);
+g = L2Grad + param.lambda*reshape(L1Grad,param.dim,param.dim,[]) + param.nuclear*reshape(L1NucGrad,param.dim,param.dim,[])+param.stateL2*stateL2Grad + param.mle*MLEGrad;

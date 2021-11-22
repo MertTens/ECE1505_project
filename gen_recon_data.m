@@ -77,29 +77,30 @@ observations = k_space.* shifted_usmat;
 % est_cov_imgs(:,:,cov_groups+1) = pre;
 num_groups = size(cov_group_sizes,2);
 est_cov = zeros(dim*dim,dim*dim);
-for a = 1:num_groups
-    cov_group_size = cov_group_sizes(a);
-    cov_groups = measurements / cov_group_size;
-    est_cov_imgs = zeros(dim, dim, cov_groups);
-    for g = 1:cov_groups
-        fftimg = zeros(dim, dim);
-        for n = 1:cov_group_size
-            idx = (g-1)*cov_group_size + n;
-            obsv = observations(:,:,idx);
-            fftimg(find(obsv ~= 0)) = obsv(find(obsv ~= 0));
-            
-        end
-        est_cov_imgs(:,:,g) = abs(ifft2(fftimg));
-%         figure()
-%         imagesc(log(abs(fftimg)))
-    end
-    est_cov = est_cov + time_series_covariance(est_cov_imgs);
-
-end
-est_cov = est_cov ./ num_groups;
+% for a = 1:num_groups
+%     cov_group_size = cov_group_sizes(a);
+%     cov_groups = measurements / cov_group_size;
+%     est_cov_imgs = zeros(dim, dim, cov_groups);
+%     for g = 1:cov_groups
+%         fftimg = zeros(dim, dim);
+%         for n = 1:cov_group_size
+%             idx = (g-1)*cov_group_size + n;
+%             obsv = observations(:,:,idx);
+%             fftimg(find(obsv ~= 0)) = obsv(find(obsv ~= 0));
+%             
+%         end
+%         est_cov_imgs(:,:,g) = abs(ifft2(fftimg));
+% %         figure()
+% %         imagesc(log(abs(fftimg)))
+%     end
+%     est_cov = est_cov + time_series_covariance(est_cov_imgs);
+% 
+% end
+% est_cov = est_cov ./ num_groups;
 
 us_observations = observations;
 truth = k_space;
+truth = SI;
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
